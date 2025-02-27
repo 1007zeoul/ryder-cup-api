@@ -1,3 +1,4 @@
+import random
 from flask import Flask, request, jsonify
 from datetime import datetime
 
@@ -9,10 +10,15 @@ latest_tournament_id = None
 
 @app.route('/admin_create_tournament', methods=['POST'])
 def admin_create_tournament():
-    """Admin creates a tournament with a unique ID."""
+    """Admin creates a tournament with a random 4-digit ID."""
     global latest_tournament_id
     data = request.json
-    tournament_id = str(len(tournaments) + 1)  # Auto-generate a unique ID
+    
+    # Generate a unique 4-digit tournament ID
+    while True:
+        tournament_id = str(random.randint(1000, 9999))  # Random 4-digit number
+        if tournament_id not in tournaments:  # Ensure it’s unique
+            break
 
     tournaments[tournament_id] = {
         "name": data.get("name", f"Tournament {tournament_id}"),
@@ -31,21 +37,6 @@ def admin_create_tournament():
         "message": f"Tournament '{tournaments[tournament_id]['name']}' created.",
         "tournament_id": tournament_id
     })
-
-@app.route('/start_tournament', methods=['POST'])
-def start_tournament():
-    """Organizer starts the tournament but cannot create a new one."""
-    global latest_tournament_id
-    data = request.json
-    tournament_id = data.get("tournament_id", latest_tournament_id)
-
-    if tournament_id not in tournaments:
-        return jsonify({"error": "Invalid tournament ID"}), 400
-
-    tournaments[tournament_id]["status"] = "active"
-    return jsonify({"message": f"Tournament '{tournaments[tournament_id]['name']}' is now active."})
-
-# Other tournament management endpoints remain the same...
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
