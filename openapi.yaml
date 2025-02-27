@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: Ryder Cup API
+  description: API to manage a live Ryder Cup golf tournament.
+  version: 1.0.0
+servers:
+  - url: https://ryder-cup-api.onrender.com
+paths:
+  /start_tournament:
+    post:
+      operationId: startTournament
+      summary: Start a new tournament.
+      description: Creates a new tournament and returns its ID.
+      responses:
+        "200":
+          description: Successfully started a new tournament.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tournament_id:
+                    type: string
+  /add_player:
+    post:
+      operationId: addPlayer
+      summary: Add a player to the tournament.
+      description: Adds a player to an existing tournament.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournament_id:
+                  type: string
+                player_name:
+                  type: string
+      responses:
+        "200":
+          description: Successfully added the player.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  player_id:
+                    type: string
+  /submit_score:
+    post:
+      operationId: submitScore
+      summary: Submit a score for a hole.
+      description: Allows a player to submit a score for a specific hole.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournament_id:
+                  type: string
+                player_id:
+                  type: string
+                hole_number:
+                  type: integer
+                score:
+                  type: integer
+      responses:
+        "200":
+          description: Successfully submitted the score.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /get_standings:
+    get:
+      operationId: getStandings
+      summary: Retrieve tournament standings.
+      description: Fetches the leaderboard based on total scores.
+      parameters:
+        - name: tournament_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved the standings.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  standings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        player_name:
+                          type: string
+                        total_score:
+                          type: integer
