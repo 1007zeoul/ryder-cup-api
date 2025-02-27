@@ -1,7 +1,6 @@
 import json
 import random
 from flask import Flask, request, jsonify
-from datetime import datetime
 
 app = Flask(__name__)
 
@@ -26,7 +25,7 @@ latest_tournament_id = None if not tournaments else max(tournaments.keys())
 
 @app.route('/admin_create_tournament', methods=['POST'])
 def admin_create_tournament():
-    """Admin creates a tournament with a random 4-digit ID and saves it to a file."""
+    """Admin creates a tournament with format and rounds."""
     global latest_tournament_id
     data = request.json
 
@@ -40,12 +39,14 @@ def admin_create_tournament():
         "name": data.get("name", f"Tournament {tournament_id}"),
         "start_date": data.get("start_date"),
         "end_date": data.get("end_date"),
+        "format": data.get("format", "Ryder Cup"),  # Default to Ryder Cup
+        "total_rounds": int(data.get("total_rounds", 1)),  # Default 1 round
+        "current_round": 1,  # Start at round 1
         "teams": {},
         "pairings": [],
         "scores": {},
         "novelty_holes": {"closest_to_pin": [], "longest_drive": []},
-        "status": "inactive",
-        "round": 1
+        "status": "inactive"
     }
     latest_tournament_id = tournament_id
 
@@ -67,9 +68,31 @@ def start_tournament():
         return jsonify({"error": "Invalid tournament ID"}), 400
 
     tournaments[tournament_id]["status"] = "active"
-    save_tournaments()  # Save changes
+    save_tournaments()
 
     return jsonify({"message": f"Tournament '{tournaments[tournament_id]['name']}' is now active."})
+
+@app.route('/start_new_round', methods=['POST'])
+def start_new_round():
+    """Starts a new round. Ends tournament if it's the last round."""
+    global latest_tournament_id
+    data = request.json
+    tournament_id = data.get("tournament_id", latest_tournament_id)
+
+    if tournament_id not in tournaments:
+        return jsonify({"error": "Invalid tournament ID"}), 400
+
+    # Check if tournament is already finished
+    if tournaments[tournament_id]["current_round"] >= tournaments[tournament_id]["total_rounds"]:
+        tournaments[tournament_id]["status"] = "closed"
+        save_tournaments()
+        return jsonify({"message": f"Tournament '{tournaments[tournament_id]['name']}' has ended. No more rounds can be started."})
+
+    # Increase the round number
+    tournaments[tournament_id]["current_round"] += 1
+    save_tournaments()
+
+    return jsonify({"message": f"Round {tournaments[tournament_id]['current_round']} started."})
 
 @app.route('/recall_tournament', methods=['GET'])
 def recall_tournament():
@@ -93,7 +116,7 @@ def end_tournament():
         return jsonify({"error": "Invalid tournament ID"}), 400
 
     tournaments[tournament_id]["status"] = "closed"
-    save_tournaments()  # Save changes
+    save_tournaments()
 
     return jsonify({"message": "Tournament has ended. Final scores are locked."})
 
