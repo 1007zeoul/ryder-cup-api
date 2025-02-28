@@ -94,6 +94,67 @@ def start_new_round():
 
     return jsonify({"message": f"Round {tournaments[tournament_id]['current_round']} started."})
 
+@app.route('/submit_score', methods=['POST'])
+def submit_score():
+    """Records a score for a match and tracks the status."""
+    global latest_tournament_id
+    data = request.json
+    tournament_id = data.get("tournament_id", latest_tournament_id)
+    hole = data.get("hole")
+    player1 = data.get("player1")
+    score1 = data.get("score1")
+    player2 = data.get("player2")
+    score2 = data.get("score2")
+
+    if tournament_id not in tournaments:
+        return jsonify({"error": "Invalid tournament ID"}), 400
+
+    if tournaments[tournament_id]["status"] != "active":
+        return jsonify({"error": "Tournament is not active"}), 400
+
+    # Initialize scores if they don't exist
+    if "match_scores" not in tournaments[tournament_id]:
+        tournaments[tournament_id]["match_scores"] = {}
+
+    # Record hole scores
+    tournaments[tournament_id]["match_scores"][hole] = {
+        player1: score1,
+        player2: score2
+    }
+
+    # Determine hole winner
+    if score1 < score2:
+        winner = player1
+    elif score2 < score1:
+        winner = player2
+    else:
+        winner = "Halved"
+
+    # Update match status
+    match_status = calculate_match_status(tournament_id, player1, player2)
+
+    save_tournaments()
+
+    return jsonify({
+        "message": f"Hole {hole} recorded: {player1} {score1}, {player2} {score2}",
+        "winner": winner,
+        "match_status": match_status
+    })
+
+def calculate_match_status(tournament_id, player1, player2):
+    """Calculates match play status based on recorded scores."""
+    scores = tournaments[tournament_id].get("match_scores", {})
+
+    player1_wins = sum(1 for hole, result in scores.items() if result.get(player1) < result.get(player2))
+    player2_wins = sum(1 for hole, result in scores.items() if result.get(player2) < result.get(player1))
+
+    if player1_wins > player2_wins:
+        return f"{player1} {player1_wins - player2_wins} Up"
+    elif player2_wins > player1_wins:
+        return f"{player2} {player2_wins - player1_wins} Up"
+    else:
+        return "All Square"
+
 @app.route('/recall_tournament', methods=['GET'])
 def recall_tournament():
     """Retrieves stored tournament details."""
