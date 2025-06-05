@@ -7,7 +7,6 @@ app = Flask(__name__)
 
 TOURNAMENTS_FILE = "tournaments.json"
 
-# Load tournaments from file
 def load_tournaments():
     try:
         with open(TOURNAMENTS_FILE, "r") as file:
@@ -15,7 +14,6 @@ def load_tournaments():
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
-# Save tournaments to file
 def save_tournaments():
     with open(TOURNAMENTS_FILE, "w") as file:
         json.dump(tournaments, file, indent=4)
@@ -91,15 +89,21 @@ def start_new_round():
 def submit_score():
     global latest_tournament_id
     data = request.json
+
     tournament_id = data.get("tournament_id", latest_tournament_id)
-    hole = data.get("hole")
+    hole = str(data.get("hole"))
     player1 = data.get("player1")
     score1 = data.get("score1")
     player2 = data.get("player2")
     score2 = data.get("score2")
 
+    # Input validation
+    if not all([tournament_id, hole, player1, score1 is not None, player2, score2 is not None]):
+        return jsonify({"error": "Missing required fields"}), 400
+
     if tournament_id not in tournaments:
         return jsonify({"error": "Invalid tournament ID"}), 400
+
     if tournaments[tournament_id]["status"] != "active":
         return jsonify({"error": "Tournament is not active"}), 400
 
