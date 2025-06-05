@@ -1,31 +1,15 @@
 openapi: 3.1.0
 info:
   title: Ryder Cup API
-  description: API to manage a live Ryder Cup golf tournament.
-  version: 1.0.0
+  description: API for managing Ryder Cup-style golf tournaments with live scoreboard support.
+  version: 1.1.0
 servers:
   - url: https://ryder-cup-api.onrender.com
 paths:
-  /start_tournament:
+  /admin_create_tournament:
     post:
-      operationId: startTournament
-      summary: Start a new tournament.
-      description: Creates a new tournament and returns its ID.
-      responses:
-        "200":
-          description: Successfully started a new tournament.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  tournament_id:
-                    type: string
-  /add_player:
-    post:
-      operationId: addPlayer
-      summary: Add a player to the tournament.
-      description: Adds a player to an existing tournament.
+      operationId: adminCreateTournament
+      summary: Admin creates a tournament.
       requestBody:
         required: true
         content:
@@ -33,43 +17,19 @@ paths:
             schema:
               type: object
               properties:
-                tournament_id:
+                name:
                   type: string
-                player_name:
+                start_date:
                   type: string
-      responses:
-        "200":
-          description: Successfully added the player.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  player_id:
-                    type: string
-  /submit_score:
-    post:
-      operationId: submitScore
-      summary: Submit a score for a hole.
-      description: Allows a player to submit a score for a specific hole.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tournament_id:
+                end_date:
                   type: string
-                player_id:
+                format:
                   type: string
-                hole_number:
-                  type: integer
-                score:
+                total_rounds:
                   type: integer
       responses:
         "200":
-          description: Successfully submitted the score.
+          description: Tournament created.
           content:
             application/json:
               schema:
@@ -77,31 +37,113 @@ paths:
                 properties:
                   message:
                     type: string
-  /get_standings:
-    get:
-      operationId: getStandings
-      summary: Retrieve tournament standings.
-      description: Fetches the leaderboard based on total scores.
-      parameters:
-        - name: tournament_id
-          in: query
-          required: true
-          schema:
-            type: string
+                  tournament_id:
+                    type: string
+
+  /start_tournament:
+    post:
+      operationId: startTournament
+      summary: Organizer starts the tournament.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournament_id:
+                  type: string
       responses:
         "200":
-          description: Successfully retrieved the standings.
+          description: Tournament started.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  standings:
+                  message:
+                    type: string
+
+  /submit_score:
+    post:
+      operationId: submitScore
+      summary: Submit a score for a match hole.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournament_id:
+                  type: string
+                hole:
+                  type: string
+                player1:
+                  type: string
+                score1:
+                  type: integer
+                player2:
+                  type: string
+                score2:
+                  type: integer
+      responses:
+        "200":
+          description: Score submitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  winner:
+                    type: string
+                  match_status:
+                    type: string
+
+  /scoreboard/{tournament_id}:
+    get:
+      operationId: getScoreboard
+      summary: Get live scoreboard for a tournament
+      parameters:
+        - name: tournament_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Live scoreboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tournament_id:
+                    type: string
+                  tournament_name:
+                    type: string
+                  status:
+                    type: string
+                  current_round:
+                    type: integer
+                  total_holes_played:
+                    type: integer
+                  match_status:
+                    type: string
+                  scoreboard:
                     type: array
                     items:
                       type: object
                       properties:
-                        player_name:
-                          type: string
-                        total_score:
+                        hole:
                           type: integer
+                        scores:
+                          type: object
+                          additionalProperties:
+                            type: integer
+                        winner:
+                          type: string
+        "404":
+          description: Tournament not found
