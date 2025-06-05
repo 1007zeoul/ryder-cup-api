@@ -89,6 +89,7 @@ def start_new_round():
 def submit_score():
     global latest_tournament_id
     data = request.json
+    print("Incoming score submission:", data)  # Log incoming data
 
     tournament_id = data.get("tournament_id", latest_tournament_id)
     hole = str(data.get("hole"))
@@ -97,8 +98,7 @@ def submit_score():
     player2 = data.get("player2")
     score2 = data.get("score2")
 
-    # Input validation
-    if not all([tournament_id, hole, player1, score1 is not None, player2, score2 is not None]):
+    if not all([tournament_id, hole, player1, player2]) or score1 is None or score2 is None:
         return jsonify({"error": "Missing required fields"}), 400
 
     if tournament_id not in tournaments:
@@ -133,8 +133,8 @@ def submit_score():
 
 def calculate_match_status(tournament_id, player1, player2):
     scores = tournaments[tournament_id].get("match_scores", {})
-    player1_wins = sum(1 for _, result in scores.items() if result.get(player1) < result.get(player2))
-    player2_wins = sum(1 for _, result in scores.items() if result.get(player2) < result.get(player1))
+    player1_wins = sum(1 for _, result in scores.items() if player1 in result and player2 in result and result[player1] < result[player2])
+    player2_wins = sum(1 for _, result in scores.items() if player1 in result and player2 in result and result[player2] < result[player1])
 
     if player1_wins > player2_wins:
         return f"{player1} {player1_wins - player2_wins} Up"
@@ -178,7 +178,9 @@ def get_scoreboard(tournament_id):
     detailed_scores = []
 
     for hole, result in sorted(scores.items(), key=lambda x: int(x[0])):
-        hole_winner = "Halved"
+        if not isinstance(result, dict) or len(result) < 2:
+            continue  # Skip invalid or incomplete scores
+
         names = list(result.keys())
         p1, p2 = names[0], names[1]
         s1, s2 = result[p1], result[p2]
@@ -188,6 +190,8 @@ def get_scoreboard(tournament_id):
             hole_winner = p1
         elif s2 < s1:
             hole_winner = p2
+        else:
+            hole_winner = "Halved"
 
         detailed_scores.append({
             "hole": int(hole),
@@ -210,6 +214,11 @@ def get_scoreboard(tournament_id):
         "match_status": match_status,
         "scoreboard": detailed_scores
     })
+
+@app.route('/debug_tournament/<tournament_id>', methods=['GET'])
+def debug_tournament(tournament_id):
+    """Inspect raw tournament data for debugging."""
+    return jsonify(tournaments.get(tournament_id, {"error": "Not found"}))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
