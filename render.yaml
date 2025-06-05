@@ -1,10 +1,12 @@
 services:
-  - name: ryder-cup-api
-    type: web
+  - type: web
+    name: ryder-cup-api
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
     envVars:
+      - key: DATABASE_URL
+        value: postgresql://rydercup_db_user:Wo8sfKFiJLb6idGu2FcQS0OPznk7wU3G@dpg-d10qc8c9c44c73dvp2t0-a.oregon-postgres.render.com/rydercup_db
       - key: PORT
         value: 10000
